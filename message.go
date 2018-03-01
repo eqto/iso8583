@@ -27,8 +27,8 @@ const (
 //Message ...
 type Message map[string]interface{}
 
-//MsgData ...
-type MessageData map[int]interface{}
+//messageData ...
+type messageData map[int]interface{}
 
 var (
 	alphabeticalBits = []byte{37, 39, 42, 43, 44, 48, 55, 61, 62}
@@ -150,10 +150,10 @@ func (m Message) SetTime(bit int, value time.Time) *Message {
 }
 
 func (m Message) setData(bit int, value interface{}) *Message {
-	if data, ok := m[`data`].(MessageData); ok {
+	if data, ok := m[`data`].(messageData); ok {
 		data[bit] = value
 	} else {
-		msgData := MessageData{}
+		msgData := messageData{}
 		msgData[bit] = value
 		m[`data`] = msgData
 	}
@@ -164,7 +164,7 @@ func (m Message) setData(bit int, value interface{}) *Message {
 func (m Message) ToJSON() []byte {
 	jsReturn := json.Object{}
 	bitmap := make([]byte, 8)
-	mapData, ok := m[`data`].(MessageData)
+	mapData, ok := m[`data`].(messageData)
 	if !ok {
 		return nil
 	}
@@ -220,7 +220,7 @@ func (m Message) ToJSON() []byte {
 //ToBytes ...
 func (m Message) ToBytes() []byte {
 	bitmap := make([]byte, 8)
-	mapData, ok := m[`data`].(MessageData)
+	mapData, ok := m[`data`].(messageData)
 	if !ok {
 		return nil
 	}
@@ -291,7 +291,7 @@ func (m Message) ToBytes() []byte {
 
 //GetString ...
 func (m Message) GetString(bit int) string {
-	data, ok := m[`data`].(MessageData)
+	data, ok := m[`data`].(messageData)
 	if !ok {
 		return ``
 	}
@@ -308,7 +308,7 @@ func (m Message) GetString(bit int) string {
 
 //GetInt ...
 func (m Message) GetInt(bit int) int {
-	data, ok := m[`data`].(MessageData)
+	data, ok := m[`data`].(messageData)
 	if !ok {
 		return 0
 	}
