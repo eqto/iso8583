@@ -110,7 +110,7 @@ func Parse(lengthType string, data []byte) (*Message, int) {
 }
 
 //SetLengthType ...
-func (m Message) SetLengthType(lengthType int) *Message {
+func (m Message) SetLengthType(lengthType string) *Message {
 	m[`length_type`] = lengthType
 	return &m
 }
@@ -284,6 +284,7 @@ func (m Message) ToBytes() []byte {
 		data = append(byteLength, data...)
 		return append(byteLength, msg...)
 	case LengthDecimal:
+		log.D(`decimal`)
 		return append([]byte(fmt.Sprintf(`%04d`, length)), msg...)
 	}
 	return nil
