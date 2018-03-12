@@ -162,6 +162,7 @@ func (m Message) setData(bit int, value interface{}) *Message {
 
 //ToJSON ...
 func (m Message) ToJSON() (jsReturn *json.Object) {
+	jsReturn = &json.Object{}
 	bitmap := make([]byte, 8)
 	mapData, ok := m[`data`].(messageData)
 	if !ok {
