@@ -161,8 +161,7 @@ func (m Message) setData(bit int, value interface{}) *Message {
 }
 
 //ToJSON ...
-func (m Message) ToJSON() []byte {
-	jsReturn := json.Object{}
+func (m Message) ToJSON() (jsReturn *json.Object) {
 	bitmap := make([]byte, 8)
 	mapData, ok := m[`data`].(messageData)
 	if !ok {
@@ -213,8 +212,12 @@ func (m Message) ToJSON() []byte {
 
 	jsReturn.Put(`mti`, m.GetMTI())
 	jsReturn.Put(`bitmap`, hex.EncodeToString(bitmap))
+	return
+}
 
-	return jsReturn.ToFormattedBytes()
+//ToJSONFormatted ...
+func (m Message) ToJSONFormatted() []byte {
+	return m.ToJSON().ToFormattedBytes()
 }
 
 //ToBytes ...
