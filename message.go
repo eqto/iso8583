@@ -196,7 +196,6 @@ func (m Message) ToJSON() (jsReturn *json.Object) {
 		str := m.GetString(key)
 		if bytes.ContainsRune(llBits, runeKey) {
 			str = fmt.Sprintf(`%02d%s`, len(str), str)
-			log.D(key, str)
 		} else if bytes.ContainsRune(lllBits, runeKey) {
 			str = fmt.Sprintf(`%03d%s`, len(str), str)
 		} else if format, ok := bitFormatMap[key]; ok {
