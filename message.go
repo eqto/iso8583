@@ -11,7 +11,6 @@ import (
 	"encoding/hex"
 	"fmt"
 	"gitlab.com/tuxer/go-json"
-	"gitlab.com/tuxer/go-logger"
 	"sort"
 	"strconv"
 	"time"
@@ -36,12 +35,13 @@ var (
 	llBits           = []byte{2, 32, 34, 44}
 	lllBits          = []byte{48, 55, 61, 62, 63}
 	bitLengthMap     = map[int]int{
-		3: 6, 4: 12, 7: 10, 8: 8, 11: 6, 12: 6, 13: 4, 18: 4, 37: 12, 39: 2, 42: 15, 43: 40, 49: 3, 70: 3,
+		3: 6, 4: 12, 7: 10, 8: 8, 11: 6, 12: 6, 13: 4, 18: 4, 37: 12, 39: 2, 42: 15, 43: 40, 49: 3, 70: 3, 90: 42,
 	}
 	bitFormatMap = map[int]string{
 		7:  `0102150405`, //MMDDhhmmss
 		12: `150405`,     //hhmmss
 		13: `0102`,       //MMDD
+		15: `0102`,       //MMDD
 	}
 
 	bitmapMap = map[string][]byte{
@@ -69,20 +69,24 @@ func Parse(lengthType string, data []byte) (*Message, int) {
 		if len(data) < 4 {
 			return nil, 0
 		}
+		println(`test`, len(data))
 		length, _ := strconv.Atoi(string(data[:4]))
 		if len(data)-4 < length {
 			return nil, 0
 		}
 		buff = newBuffer(data[4:])
 		totalLen += (4 + length)
+		println(`test`)
 	}
 	m := Message{}
+	m.SetLengthType(lengthType)
 	mti := buff.read(4)
 	m.SetMTI(string(mti))
 	hexBitmap := buff.read(16)
 
 	bitmap, _ := hex.DecodeString(string(hexBitmap))
 	if bitmap[0]&(0x01<<7) > 0 {
+
 		secondBitmap, _ := hex.DecodeString(string(buff.read(16)))
 		bitmap = append(bitmap, secondBitmap...)
 	}
@@ -287,7 +291,6 @@ func (m Message) ToBytes() []byte {
 		data = append(byteLength, data...)
 		return append(byteLength, msg...)
 	case LengthDecimal:
-		log.D(`decimal`)
 		return append([]byte(fmt.Sprintf(`%04d`, length)), msg...)
 	}
 	return nil
