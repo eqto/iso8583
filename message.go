@@ -35,7 +35,7 @@ var (
 	llBits           = []byte{2, 32, 34, 44}
 	lllBits          = []byte{48, 55, 61, 62, 63}
 	bitLengthMap     = map[int]int{
-		3: 6, 4: 12, 7: 10, 8: 8, 11: 6, 12: 6, 13: 4, 18: 4, 37: 12, 39: 2, 42: 15, 43: 40, 49: 3, 70: 3, 90: 42,
+		3: 6, 4: 12, 7: 10, 8: 8, 11: 6, 12: 6, 13: 4, 15: 4, 18: 4, 37: 12, 39: 2, 41: 8, 42: 15, 43: 40, 49: 3, 70: 3, 90: 42,
 	}
 	bitFormatMap = map[int]string{
 		7:  `0102150405`, //MMDDhhmmss
@@ -199,9 +199,9 @@ func (m Message) ToJSON() (jsReturn *json.Object) {
 
 		str := m.GetString(key)
 		if bytes.ContainsRune(llBits, runeKey) {
-			str = fmt.Sprintf(`%02d%s`, len(str), str)
+			// str = fmt.Sprintf(`%02d%s`, len(str), str)
 		} else if bytes.ContainsRune(lllBits, runeKey) {
-			str = fmt.Sprintf(`%03d%s`, len(str), str)
+			// str = fmt.Sprintf(`%03d%s`, len(str), str)
 		} else if format, ok := bitFormatMap[key]; ok {
 			if formatTime, ok := mapData[key].(time.Time); ok {
 				str = formatTime.Format(format)
