@@ -7,6 +7,7 @@
 package iso
 
 import (
+	"strings"
 	"bytes"
 	"encoding/hex"
 	"fmt"
@@ -30,7 +31,7 @@ type Message map[string]interface{}
 type messageData map[int]interface{}
 
 var (
-	alphabeticalBits = []byte{37, 39, 42, 43, 44, 48, 55, 61, 62}
+	alphabeticalBits = []byte{37, 41, 42, 43, 44, 48, 55, 61, 62}
 	specialBits      = []byte{42, 43, 44, 48, 55, 61, 52}
 	llBits           = []byte{2, 32, 34, 44}
 	lllBits          = []byte{48, 55, 61, 62, 63}
@@ -69,14 +70,12 @@ func Parse(lengthType string, data []byte) (*Message, int) {
 		if len(data) < 4 {
 			return nil, 0
 		}
-		println(`test`, len(data))
 		length, _ := strconv.Atoi(string(data[:4]))
 		if len(data)-4 < length {
 			return nil, 0
 		}
 		buff = newBuffer(data[4:])
 		totalLen += (4 + length)
-		println(`test`)
 	}
 	m := Message{}
 	m.SetLengthType(lengthType)
@@ -86,7 +85,6 @@ func Parse(lengthType string, data []byte) (*Message, int) {
 
 	bitmap, _ := hex.DecodeString(string(hexBitmap))
 	if bitmap[0]&(0x01<<7) > 0 {
-
 		secondBitmap, _ := hex.DecodeString(string(buff.read(16)))
 		bitmap = append(bitmap, secondBitmap...)
 	}
@@ -215,7 +213,7 @@ func (m Message) ToJSON() (jsReturn *json.Object) {
 	}
 
 	jsReturn.Put(`mti`, m.GetMTI())
-	jsReturn.Put(`bitmap`, hex.EncodeToString(bitmap))
+	jsReturn.Put(`bitmap`, strings.ToUpper(hex.EncodeToString(bitmap)))
 	return
 }
 
@@ -278,7 +276,7 @@ func (m Message) ToBytes() []byte {
 
 	header := buffer{}
 	header.writeString(m.GetMTI())
-	header.writeString(hex.EncodeToString(bitmap))
+	header.writeString(strings.ToUpper(hex.EncodeToString(bitmap)))
 
 	msg := append(append(header.bytes(), data...))
 	length := len(msg)
