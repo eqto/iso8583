@@ -11,7 +11,6 @@ import (
 	"time"
 
 	"github.com/eqto/go-json"
-	log "github.com/eqto/go-logger"
 )
 
 //messageData ...
@@ -212,7 +211,6 @@ func Parse(data []byte) (msg Message, err error) {
 	if bytes.HasPrefix(data, []byte(`ISO`)) { //buang prefix
 		msg.SetDeviceHeader(string(data[:12]))
 		data = data[12:]
-		log.D(`IN NOHEAD:`, string(data))
 	}
 
 	buff := NewBuffer(data)
