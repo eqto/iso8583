@@ -185,14 +185,9 @@ func (m Message) Bytes() []byte {
 	if !ok {
 		return nil
 	}
-	var keys []int
-	for key := range data {
-		keys = append(keys, key)
-	}
-	sort.Ints(keys)
 
 	buff := buffer{}
-	for _, key := range keys {
+	for _, key := range m.keys() {
 		str := m.GetString(key)
 
 		runeKey := rune(key)
@@ -257,6 +252,13 @@ func (m Message) BitmapString() string {
 	return strings.ToUpper(hex.EncodeToString(m.Bitmap()))
 }
 
+func (m Message) keys() []int {
+	if _, ok := m[`keys`]; !ok {
+		m[`keys`] = make([]int, 0)
+	}
+	return m[`keys`].([]int)
+}
+
 func (m Message) setData(bit int, value interface{}) *Message {
 	bitmap := m.Bitmap()
 	if bit > 64 && len(bitmap) == 8 {
@@ -266,6 +268,17 @@ func (m Message) setData(bit int, value interface{}) *Message {
 	pos := (bit - 1) / 8
 	bitmap[pos] |= 0x01 << (8 - uint(bit-(pos*8)))
 	m[`bitmap`] = bitmap
+
+	keys := m.keys()
+	if len(keys) == 0 {
+		keys = []int{bit}
+	} else {
+		pos = sort.SearchInts(keys, bit)
+		keys = append(keys, 0)
+		copy(keys[pos+1:], keys[pos:])
+		keys[pos] = bit
+	}
+	m[`keys`] = keys
 
 	if data, ok := m[`data`].(messageData); ok {
 		data[bit] = value
