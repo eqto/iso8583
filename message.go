@@ -125,6 +125,16 @@ func (m Message) GetInt(bit int) int {
 	return 0
 }
 
+//Has ...
+func (m Message) Has(bit int) bool {
+	if data, ok := m[`data`].(messageData); ok {
+		if _, ok := data[bit]; ok {
+			return true
+		}
+	}
+	return false
+}
+
 func (m Message) setData(bit int, value interface{}) *Message {
 	if data, ok := m[`data`].(messageData); ok {
 		data[bit] = value
