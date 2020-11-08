@@ -9,55 +9,47 @@ import (
 	"strconv"
 	"strings"
 	"time"
-
-	"github.com/eqto/go-json"
 )
 
 //messageData ...
 type messageData map[int]interface{}
 
 //Message ...
-type Message map[string]interface{}
+type Message struct {
+	deviceHeader string
+	mti          string
+	bitmap       []byte
+	data         messageData
+	keys         []int
+}
 
 //SetDeviceHeader ...
-func (m Message) SetDeviceHeader(header string) {
-	m[`header`] = header
+func (m *Message) SetDeviceHeader(deviceHeader string) {
+	m.deviceHeader = deviceHeader
 }
 
 //GetDeviceHeader ...
-func (m Message) GetDeviceHeader() string {
-	if header, ok := m[`header`]; ok {
-		return header.(string)
-	}
-	return ``
+func (m *Message) GetDeviceHeader() string {
+	return m.deviceHeader
 }
 
 //SetMTI ...
-func (m Message) SetMTI(mti string) *Message {
-	m[`mti`] = fmt.Sprintf(`%04s`, mti)
-	return &m
+func (m *Message) SetMTI(mti string) *Message {
+	m.mti = mti
+	return m
 }
 
 //GetMTI ...
-func (m Message) GetMTI() string {
-	if mti, ok := m[`mti`]; ok {
-		return mti.(string)
-	}
-	return ``
-}
-
-//SetString ...
-func (m Message) SetString(bit int, value string) *Message {
-	return m.setData(bit, value)
+func (m *Message) GetMTI() string {
+	return m.mti
 }
 
 //Get ...
-func (m Message) Get(bit int) []byte {
-	data, ok := m[`data`].(messageData)
-	if !ok {
+func (m *Message) Get(bit int) []byte {
+	if m.data == nil {
 		return nil
 	}
-	switch val := data[bit].(type) {
+	switch val := m.data[bit].(type) {
 	case int:
 		return []byte(strconv.Itoa(val))
 	case string:
@@ -68,19 +60,23 @@ func (m Message) Get(bit int) []byte {
 	return nil
 }
 
+//SetString ...
+func (m *Message) SetString(bit int, value string) *Message {
+	return m.setData(bit, value)
+}
+
 //GetString ...
-func (m Message) GetString(bit int) string {
-	data, ok := m[`data`].(messageData)
-	if !ok {
+func (m *Message) GetString(bit int) string {
+	if m.data == nil {
 		return ``
 	}
 	if format, ok := timeBit[bit]; ok {
-		if formatTime, ok := data[bit].(time.Time); ok {
+		if formatTime, ok := m.data[bit].(time.Time); ok {
 			return formatTime.Format(format)
 		}
 		return strings.Repeat(`0`, len(format))
 	}
-	switch val := data[bit].(type) {
+	switch val := m.data[bit].(type) {
 	case int:
 		return strconv.Itoa(val)
 	case string:
@@ -92,22 +88,21 @@ func (m Message) GetString(bit int) string {
 }
 
 //SetNumeric ...
-func (m Message) SetNumeric(bit int, value int) *Message {
+func (m *Message) SetNumeric(bit int, value int) *Message {
 	return m.setData(bit, value)
 }
 
 //SetTime ...
-func (m Message) SetTime(bit int, value time.Time) *Message {
+func (m *Message) SetTime(bit int, value time.Time) *Message {
 	return m.setData(bit, value)
 }
 
 //GetInt ...
-func (m Message) GetInt(bit int) int {
-	data, ok := m[`data`].(messageData)
-	if !ok {
+func (m *Message) GetInt(bit int) int {
+	if m.data == nil {
 		return 0
 	}
-	switch val := data[bit].(type) {
+	switch val := m.data[bit].(type) {
 	case int:
 		return val
 	case string:
@@ -128,9 +123,9 @@ func (m Message) GetInt(bit int) int {
 }
 
 //Has ...
-func (m Message) Has(bit int) bool {
-	if data, ok := m[`data`].(messageData); ok {
-		if _, ok := data[bit]; ok {
+func (m *Message) Has(bit int) bool {
+	if m.data != nil {
+		if _, ok := m.data[bit]; ok {
 			return true
 		}
 	}
@@ -138,65 +133,34 @@ func (m Message) Has(bit int) bool {
 }
 
 //Clone ...
-func (m Message) Clone() Message {
-	newM := Message{}
-	for key, val := range m {
-		newM[key] = val
+func (m *Message) Clone() Message {
+	msg := Message{
+		deviceHeader: m.deviceHeader,
+		mti:          m.mti,
+		data:         messageData{},
 	}
-	return newM
-}
-
-//JSON ...
-func (m Message) JSON() json.Object {
-	js := make(json.Object)
-	data, ok := m[`data`].(messageData)
-	if !ok {
-		return js
+	copy(msg.bitmap, m.bitmap)
+	copy(msg.keys, m.keys)
+	for key, val := range m.data {
+		msg.data[key] = val
 	}
-
-	var keys []int
-	for key := range data {
-		keys = append(keys, key)
-	}
-	sort.Ints(keys)
-
-	for _, key := range keys {
-		str := m.GetString(key)
-
-		runeKey := rune(key)
-
-		if _, ok := timeBit[key]; ok {
-		} else if length, ok := bitLengthMap[key]; ok {
-			isAlphabetically := bytes.ContainsRune(alphabeticalBits, runeKey)
-			isSpecial := bytes.ContainsRune(specialBits, runeKey)
-			if isAlphabetically || isSpecial {
-				str = fmt.Sprintf(`%-`+strconv.Itoa(length)+`s`, str)
-			} else {
-				str = fmt.Sprintf(`%0`+strconv.Itoa(length)+`v`, m.GetInt(key))
-			}
-		}
-
-		js.Put(strconv.Itoa(key), str)
-	}
-	js.Put(`bitmap`, m.BitmapString())
-	return js
+	return msg
 }
 
 //Bytes ...
-func (m Message) Bytes() []byte {
-	data, ok := m[`data`].(messageData)
-	if !ok {
+func (m *Message) Bytes() []byte {
+	if m.data == nil {
 		return nil
 	}
 
 	buff := buffer{}
-	for _, key := range m.keys() {
+	for _, key := range m.keys {
 		str := m.GetString(key)
 
 		runeKey := rune(key)
 
 		if format, ok := timeBit[key]; ok {
-			if formatTime, ok := data[key].(time.Time); ok {
+			if formatTime, ok := m.data[key].(time.Time); ok {
 				str = formatTime.Format(format)
 			} else {
 				str = strings.Repeat(`0`, len(format))
@@ -227,61 +191,52 @@ func (m Message) Bytes() []byte {
 	return append(header.bytes(), buff.bytes()...)
 }
 
-func (m Message) String() string {
+func (m *Message) String() string {
 	return string(m.Bytes())
 }
 
 //Dump ...
-func (m Message) Dump() string {
+func (m *Message) Dump() string {
 	buff := &strings.Builder{}
 	if header := m.GetDeviceHeader(); header != `` {
 		fmt.Fprintf(buff, "Device Header: %s\n", header)
 	}
 	fmt.Fprintf(buff, "MTI: %s\n", m.GetMTI())
 	fmt.Fprintf(buff, "Bitmap: %s\n", m.BitmapString())
-	for _, key := range m.keys() {
+	for _, key := range m.keys {
 		fmt.Fprintf(buff, "%3d: %s\n", key, m.GetString(key))
 	}
 	return buff.String()
 }
 
 //Bitmap ...
-func (m Message) Bitmap() []byte {
-	if _, ok := m[`bitmap`]; !ok {
-		m[`bitmap`] = make([]byte, 8)
+func (m *Message) Bitmap() []byte {
+	if m.bitmap == nil {
+		m.bitmap = make([]byte, 8)
 	}
-	return m[`bitmap`].([]byte)
+	return m.bitmap
 }
 
 //BitmapString ...
-func (m Message) BitmapString() string {
+func (m *Message) BitmapString() string {
 	return strings.ToUpper(hex.EncodeToString(m.Bitmap()))
 }
 
-func (m Message) keys() []int {
-	if _, ok := m[`keys`]; !ok {
-		m[`keys`] = []int{}
-	}
-	return m[`keys`].([]int)
-}
-
-func (m Message) setKey(key int) {
-	keys := m.keys()
-	if len(keys) == 0 {
-		keys = []int{key}
+func (m *Message) setKey(key int) {
+	if len(m.keys) == 0 {
+		m.keys = []int{key}
 	} else {
-		pos := sort.SearchInts(keys, key)
-		if pos > 0 && keys[pos-1] == key {
+		pos := sort.SearchInts(m.keys, key)
+		if pos < len(m.keys) && key == m.keys[pos] {
 			return
 		}
-		keys = append(keys, 0)
-		copy(keys[pos+1:], keys[pos:])
-		keys[pos] = key
+		m.keys = append(m.keys, 0)
+		copy(m.keys[pos+1:], m.keys[pos:])
+		m.keys[pos] = key
 	}
-	m[`keys`] = keys
 }
 
-func (m Message) setData(bit int, value interface{}) *Message {
+func (m *Message) setData(bit int, value interface{}) *Message {
 	bitmap := m.Bitmap()
 	if bit > 64 && len(bitmap) == 8 {
 		bitmap = append(bitmap, make([]byte, 8)...)
@@ -289,29 +244,27 @@ func (m Message) setData(bit int, value interface{}) *Message {
 	}
 	pos := (bit - 1) / 8
 	bitmap[pos] |= 0x01 << (8 - uint(bit-(pos*8)))
-	m[`bitmap`] = bitmap
+	m.bitmap = bitmap
 
 	m.setKey(bit)
 
-	if data, ok := m[`data`].(messageData); ok {
-		data[bit] = value
-	} else {
-		msgData := messageData{}
-		msgData[bit] = value
-		m[`data`] = msgData
+	if m.data == nil {
+		m.data = messageData{}
 	}
-	return &m
+	m.data[bit] = value
+
+	return m
 }
 
 //Parse ...
-func Parse(data []byte) (msg Message, err error) {
+func Parse(data []byte) (msg *Message, err error) {
 	defer func() {
 		if r := recover(); r != nil {
 			msg = nil
 			err = errors.New(`invalid format`)
 		}
 	}()
-	msg = Message{}
+	msg = &Message{}
 
 	if bytes.HasPrefix(data, []byte(`ISO`)) { //buang prefix
 		msg.SetDeviceHeader(string(data[:12]))
