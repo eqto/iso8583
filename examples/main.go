@@ -13,10 +13,10 @@ func main() {
 	builder := iso8583.NewBuilder(`0800`, 7, 11, 48, 70)
 	req, _ := builder.New(sign)
 
-	data := req.Bytes()
-	println(fmt.Sprintf(`Sign Request: %s`, string(data)))
-	resp, _ := iso8583.Parse(data)
-	println(resp)
+	println(fmt.Sprintf(`Sign Request: %s`, req))
+	resp, _ := iso8583.Parse(req.Bytes())
+	println(fmt.Sprintf("== Parsed Sign Request ==\n%s", resp.Dump()))
+	println(`== End Request ==`)
 
 	// t.Log(msg.JSON().ToFormattedString())
 	// t.Log(string(msg.Bytes()))
