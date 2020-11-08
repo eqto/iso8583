@@ -11,7 +11,6 @@ import (
 
 //Builder ...
 type Builder struct {
-	mti           string
 	allowedBits   []byte
 	mandatoryBits []byte
 }
@@ -22,7 +21,7 @@ func (b *Builder) SetMandatoryBits(bits ...byte) {
 }
 
 //New ...
-func (b *Builder) New(data interface{}) (*Message, error) {
+func (b *Builder) New(mti string, data interface{}) (*Message, error) {
 	elem := reflect.TypeOf(data)
 	if elem.Kind() == reflect.Ptr {
 		elem = elem.Elem()
@@ -36,7 +35,7 @@ func (b *Builder) New(data interface{}) (*Message, error) {
 	}
 
 	msg := Message{}
-	msg.SetMTI(b.mti)
+	msg.SetMTI(mti)
 	len := elem.NumField()
 	for i := 0; i < len; i++ {
 		tag := elem.Field(i).Tag
@@ -74,6 +73,6 @@ func (b *Builder) New(data interface{}) (*Message, error) {
 }
 
 //NewBuilder ...
-func NewBuilder(mti string, allowedBits ...byte) Builder {
-	return Builder{mti: mti, allowedBits: allowedBits}
+func NewBuilder(allowedBits ...byte) Builder {
+	return Builder{allowedBits: allowedBits}
 }
