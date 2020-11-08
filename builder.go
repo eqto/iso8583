@@ -11,12 +11,18 @@ import (
 
 //Builder ...
 type Builder struct {
-	mti  string
-	bits []byte
+	mti           string
+	allowedBits   []byte
+	mandatoryBits []byte
+}
+
+//SetMandatoryBits ...
+func (b *Builder) SetMandatoryBits(bits ...byte) {
+	b.mandatoryBits = bits
 }
 
 //New ...
-func (m *Builder) New(data interface{}) (*Message, error) {
+func (b *Builder) New(data interface{}) (*Message, error) {
 	elem := reflect.TypeOf(data)
 	if elem.Kind() == reflect.Ptr {
 		elem = elem.Elem()
@@ -30,13 +36,13 @@ func (m *Builder) New(data interface{}) (*Message, error) {
 	}
 
 	msg := Message{}
-	msg.SetMTI(m.mti)
+	msg.SetMTI(b.mti)
 	len := elem.NumField()
 	for i := 0; i < len; i++ {
 		tag := elem.Field(i).Tag
 		if bitTag := tag.Get(`bit`); bitTag != `` {
 			if bit, e := strconv.Atoi(bitTag); e == nil {
-				if bytes.ContainsRune(m.bits, rune(bit)) {
+				if bytes.ContainsRune(b.allowedBits, rune(bit)) {
 					switch kind := val.Field(i).Kind(); kind {
 					case reflect.Int:
 						msg.SetNumeric(bit, int(val.Field(i).Int()))
@@ -53,7 +59,7 @@ func (m *Builder) New(data interface{}) (*Message, error) {
 	}
 	//set mandatory fields that has not set
 	time := time.Now()
-	for _, bit := range m.bits {
+	for _, bit := range b.mandatoryBits {
 		intBit := int(bit)
 		if !msg.Has(intBit) {
 			if _, ok := timeBit[intBit]; ok {
@@ -68,6 +74,6 @@ func (m *Builder) New(data interface{}) (*Message, error) {
 }
 
 //NewBuilder ...
-func NewBuilder(mti string, bits ...byte) Builder {
-	return Builder{mti: mti, bits: bits}
+func NewBuilder(mti string, allowedBits ...byte) Builder {
+	return Builder{mti: mti, allowedBits: allowedBits}
 }
