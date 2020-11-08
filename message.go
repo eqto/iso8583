@@ -271,7 +271,7 @@ func Parse(data []byte) (msg *Message, err error) {
 		data = data[12:]
 	}
 
-	buff := NewBuffer(data)
+	buff := newBuffer(data)
 
 	msg.SetMTI(buff.ReadString(4))
 

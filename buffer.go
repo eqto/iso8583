@@ -10,8 +10,7 @@ type buffer struct {
 	byteBuff *bytes.Buffer
 }
 
-//NewBuffer ...
-func NewBuffer(data []byte) *buffer {
+func newBuffer(data []byte) *buffer {
 	buffer := &buffer{}
 	buffer.byteBuff = bytes.NewBuffer(data)
 	return buffer
