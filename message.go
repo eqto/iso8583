@@ -19,12 +19,6 @@ type messageData map[int]interface{}
 //Message ...
 type Message map[string]interface{}
 
-//SetMTI ...
-func (m Message) SetMTI(mti string) *Message {
-	m[`mti`] = fmt.Sprintf(`%04s`, mti)
-	return &m
-}
-
 //SetDeviceHeader ...
 func (m Message) SetDeviceHeader(header string) {
 	m[`header`] = header
@@ -36,6 +30,12 @@ func (m Message) GetDeviceHeader() string {
 		return header.(string)
 	}
 	return ``
+}
+
+//SetMTI ...
+func (m Message) SetMTI(mti string) *Message {
+	m[`mti`] = fmt.Sprintf(`%04s`, mti)
+	return &m
 }
 
 //GetMTI ...
@@ -134,17 +134,6 @@ func (m Message) Has(bit int) bool {
 	return false
 }
 
-func (m Message) setData(bit int, value interface{}) *Message {
-	if data, ok := m[`data`].(messageData); ok {
-		data[bit] = value
-	} else {
-		msgData := messageData{}
-		msgData[bit] = value
-		m[`data`] = msgData
-	}
-	return &m
-}
-
 //Clone ...
 func (m Message) Clone() Message {
 	newM := Message{}
@@ -196,62 +185,6 @@ func (m Message) JSON() json.Object {
 	}
 	js.Put(`bitmap`, strings.ToUpper(hex.EncodeToString(bitmap)))
 	return js
-}
-
-//Parse ...
-func Parse(data []byte) (msg Message, err error) {
-	defer func() {
-		if r := recover(); r != nil {
-			msg = nil
-			err = errors.New(`invalid format`)
-		}
-	}()
-	msg = Message{}
-
-	if bytes.HasPrefix(data, []byte(`ISO`)) { //buang prefix
-		msg.SetDeviceHeader(string(data[:12]))
-		data = data[12:]
-	}
-
-	buff := NewBuffer(data)
-
-	msg.SetMTI(buff.ReadString(4))
-
-	bitmap, _ := hex.DecodeString(buff.ReadString(16))
-	if bitmap[0]&(0x01<<7) > 0 {
-		secondBitmap, _ := hex.DecodeString(buff.ReadString(16))
-		bitmap = append(bitmap, secondBitmap...)
-	}
-
-	var index rune
-	for _, val := range bitmap {
-		for i := 7; i >= 0; i-- {
-			index++
-			if val&(0x01<<uint(i)) > 0 {
-				var length int
-				if bytes.ContainsRune(lllBits, index) {
-					length = buff.ReadInt(3)
-				} else if bytes.ContainsRune(llBits, index) {
-					length = buff.ReadInt(2)
-				} else if fixLength, ok := bitLengthMap[int(index)]; ok {
-					length = fixLength
-				}
-				data := buff.Read(length)
-				if format, ok := timeBit[int(index)]; ok {
-					parsed, e := time.Parse(format, string(data))
-					if e == nil {
-						msg.setData(int(index), parsed)
-					} else {
-						msg.setData(int(index), ``)
-					}
-				} else {
-					msg.setData(int(index), data)
-				}
-			}
-		}
-	}
-
-	return msg, nil
 }
 
 //Bytes ...
@@ -311,4 +244,115 @@ func (m Message) Bytes() []byte {
 	header.writeString(strings.ToUpper(hex.EncodeToString(bitmap)))
 
 	return append(header.bytes(), buff.bytes()...)
+}
+
+func (m Message) String() string {
+	return string(m.Bytes())
+}
+
+//Dump ...
+func (m Message) Dump() string {
+	buff := &strings.Builder{}
+	if header := m.GetDeviceHeader(); header != `` {
+		fmt.Fprintf(buff, "Device Header: %s\n", header)
+	}
+	fmt.Fprintf(buff, "MTI: %s\n", m.GetMTI())
+	fmt.Fprintf(buff, "Bitmap: %s\n", m.BitmapString())
+	return buff.String()
+}
+
+//Bitmap ...
+func (m Message) Bitmap() []byte {
+	if _, ok := m[`bitmap`]; !ok {
+		m[`bitmap`] = make([]byte, 8)
+	}
+	return m[`bitmap`].([]byte)
+}
+
+//BitmapString ...
+func (m Message) BitmapString() string {
+	bitmap := m.Bitmap()
+	str := strings.Builder{}
+	str.WriteString(hex.EncodeToString(bitmap[:8]))
+	if len(bitmap) > 8 {
+		str.WriteString(` `)
+		str.WriteString(hex.EncodeToString(bitmap[8:]))
+	}
+	return str.String()
+}
+
+func (m Message) setData(bit int, value interface{}) *Message {
+	bitmap := m.Bitmap()
+	if bit > 64 && len(bitmap) == 8 {
+		bitmap = append(bitmap, make([]byte, 8)...)
+		bitmap[0] |= 0x01 << 7
+	}
+	pos := (bit - 1) / 8
+	bitmap[pos] |= 0x01 << (8 - uint(bit-(pos*8)))
+	m[`bitmap`] = bitmap
+
+	if data, ok := m[`data`].(messageData); ok {
+		data[bit] = value
+	} else {
+		msgData := messageData{}
+		msgData[bit] = value
+		m[`data`] = msgData
+	}
+	return &m
+}
+
+//Parse ...
+func Parse(data []byte) (msg Message, err error) {
+	defer func() {
+		if r := recover(); r != nil {
+			msg = nil
+			err = errors.New(`invalid format`)
+		}
+	}()
+	msg = Message{}
+
+	if bytes.HasPrefix(data, []byte(`ISO`)) { //buang prefix
+		msg.SetDeviceHeader(string(data[:12]))
+		data = data[12:]
+	}
+
+	buff := NewBuffer(data)
+
+	msg.SetMTI(buff.ReadString(4))
+
+	bitmap, _ := hex.DecodeString(buff.ReadString(16))
+	if bitmap[0]&(0x01<<7) > 0 {
+		secondBitmap, _ := hex.DecodeString(buff.ReadString(16))
+		bitmap = append(bitmap, secondBitmap...)
+	}
+
+	var index rune
+	for _, val := range bitmap {
+		for i := 7; i >= 0; i-- {
+			index++
+			if val&(0x01<<uint(i)) > 0 {
+				var length int
+				if bytes.ContainsRune(lllBits, index) {
+					length = buff.ReadInt(3)
+				} else if bytes.ContainsRune(llBits, index) {
+					length = buff.ReadInt(2)
+				} else if fixLength, ok := bitLengthMap[int(index)]; ok {
+					length = fixLength
+				}
+				data := buff.Read(length)
+				if format, ok := timeBit[int(index)]; ok {
+					parsed, e := time.Parse(format, string(data))
+					if e == nil {
+						msg.setData(int(index), parsed)
+					} else {
+						msg.setData(int(index), ``)
+					}
+				} else {
+					msg.setData(int(index), data)
+				}
+			}
+		}
+	}
+
+	return msg, nil
 }
