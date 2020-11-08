@@ -157,15 +157,7 @@ func (m Message) JSON() json.Object {
 	}
 	sort.Ints(keys)
 
-	bitmap := make([]byte, 8)
 	for _, key := range keys {
-		if key > 64 && len(bitmap) == 8 {
-			bitmap = append(bitmap, make([]byte, 8)...)
-			bitmap[0] |= 0x01 << 7
-		}
-		charPos := (key - 1) / 8
-		bitmap[charPos] |= 0x01 << (8 - uint(key-(charPos*8)))
-
 		str := m.GetString(key)
 
 		runeKey := rune(key)
@@ -183,7 +175,7 @@ func (m Message) JSON() json.Object {
 
 		js.Put(strconv.Itoa(key), str)
 	}
-	js.Put(`bitmap`, strings.ToUpper(hex.EncodeToString(bitmap)))
+	js.Put(`bitmap`, m.BitmapString())
 	return js
 }
 
