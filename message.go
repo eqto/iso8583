@@ -239,6 +239,9 @@ func (m Message) Dump() string {
 	}
 	fmt.Fprintf(buff, "MTI: %s\n", m.GetMTI())
 	fmt.Fprintf(buff, "Bitmap: %s\n", m.BitmapString())
+	for _, key := range m.keys() {
+		fmt.Fprintf(buff, "%3d: %s\n", key, m.GetString(key))
+	}
 	return buff.String()
 }
 
