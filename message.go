@@ -200,15 +200,7 @@ func (m Message) Bytes() []byte {
 	sort.Ints(keys)
 
 	buff := buffer{}
-	bitmap := make([]byte, 8)
 	for _, key := range keys {
-		if key > 64 && len(bitmap) == 8 {
-			bitmap = append(bitmap, make([]byte, 8)...)
-			bitmap[0] |= 0x01 << 7
-		}
-		charPos := (key - 1) / 8
-		bitmap[charPos] |= 0x01 << (8 - uint(key-(charPos*8)))
-
 		str := m.GetString(key)
 
 		runeKey := rune(key)
@@ -237,11 +229,10 @@ func (m Message) Bytes() []byte {
 	header := buffer{}
 	devHeader := m.GetDeviceHeader()
 	if len(devHeader) > 0 {
-		// devHeader = devHeader[:len(devHeader)-1] + `1`
 		header.writeString(devHeader)
 	}
 	header.writeString(m.GetMTI())
-	header.writeString(strings.ToUpper(hex.EncodeToString(bitmap)))
+	header.writeString(m.BitmapString())
 
 	return append(header.bytes(), buff.bytes()...)
 }
@@ -271,14 +262,7 @@ func (m Message) Bitmap() []byte {
 
 //BitmapString ...
 func (m Message) BitmapString() string {
-	bitmap := m.Bitmap()
-	str := strings.Builder{}
-	str.WriteString(hex.EncodeToString(bitmap[:8]))
-	if len(bitmap) > 8 {
-		str.WriteString(` `)
-		str.WriteString(hex.EncodeToString(bitmap[8:]))
-	}
-	return str.String()
+	return strings.ToUpper(hex.EncodeToString(m.Bitmap()))
 }
 
 func (m Message) setData(bit int, value interface{}) *Message {
