@@ -40,7 +40,10 @@ func (m Message) SetMTI(mti string) *Message {
 
 //GetMTI ...
 func (m Message) GetMTI() string {
-	return m[`mti`].(string)
+	if mti, ok := m[`mti`]; ok {
+		return mti.(string)
+	}
+	return ``
 }
 
 //SetString ...
@@ -254,9 +257,25 @@ func (m Message) BitmapString() string {
 
 func (m Message) keys() []int {
 	if _, ok := m[`keys`]; !ok {
-		m[`keys`] = make([]int, 0)
+		m[`keys`] = []int{}
 	}
 	return m[`keys`].([]int)
+}
+
+func (m Message) setKey(key int) {
+	keys := m.keys()
+	if len(keys) == 0 {
+		keys = []int{key}
+	} else {
+		pos := sort.SearchInts(keys, key)
+		if pos > 0 && keys[pos-1] == key {
+			return
+		}
+		keys = append(keys, 0)
+		copy(keys[pos+1:], keys[pos:])
+		keys[pos] = key
+	}
+	m[`keys`] = keys
 }
 
 func (m Message) setData(bit int, value interface{}) *Message {
@@ -269,16 +288,7 @@ func (m Message) setData(bit int, value interface{}) *Message {
 	bitmap[pos] |= 0x01 << (8 - uint(bit-(pos*8)))
 	m[`bitmap`] = bitmap
 
-	keys := m.keys()
-	if len(keys) == 0 {
-		keys = []int{bit}
-	} else {
-		pos = sort.SearchInts(keys, bit)
-		keys = append(keys, 0)
-		copy(keys[pos+1:], keys[pos:])
-		keys[pos] = bit
-	}
-	m[`keys`] = keys
+	m.setKey(bit)
 
 	if data, ok := m[`data`].(messageData); ok {
 		data[bit] = value
@@ -315,29 +325,29 @@ func Parse(data []byte) (msg Message, err error) {
 		bitmap = append(bitmap, secondBitmap...)
 	}
 
-	var index rune
+	var index int
 	for _, val := range bitmap {
 		for i := 7; i >= 0; i-- {
 			index++
 			if val&(0x01<<uint(i)) > 0 {
 				var length int
-				if bytes.ContainsRune(lllBits, index) {
+				if bytes.ContainsRune(lllBits, rune(index)) {
 					length = buff.ReadInt(3)
-				} else if bytes.ContainsRune(llBits, index) {
+				} else if bytes.ContainsRune(llBits, rune(index)) {
 					length = buff.ReadInt(2)
-				} else if fixLength, ok := bitLengthMap[int(index)]; ok {
+				} else if fixLength, ok := bitLengthMap[index]; ok {
 					length = fixLength
 				}
 				data := buff.Read(length)
-				if format, ok := timeBit[int(index)]; ok {
+				if format, ok := timeBit[index]; ok {
 					parsed, e := time.Parse(format, string(data))
 					if e == nil {
-						msg.setData(int(index), parsed)
+						msg.setData(index, parsed)
 					} else {
-						msg.setData(int(index), ``)
+						msg.setData(index, ``)
 					}
 				} else {
-					msg.setData(int(index), data)
+					msg.setData(index, data)
 				}
 			}
 		}
