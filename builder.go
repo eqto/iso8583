@@ -78,6 +78,6 @@ func (b *Builder) New(mti string, data interface{}) (*Message, error) {
 }
 
 //NewBuilder ...
-func NewBuilder(allowedBits ...byte) Builder {
-	return Builder{allowedBits: allowedBits}
+func NewBuilder(allowedBits ...byte) *Builder {
+	return &Builder{allowedBits: allowedBits}
 }
