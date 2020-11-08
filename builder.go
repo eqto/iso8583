@@ -17,6 +17,11 @@ type Builder struct {
 
 //SetMandatoryBits ...
 func (b *Builder) SetMandatoryBits(bits ...byte) {
+	for _, bit := range bits {
+		if !bytes.ContainsRune(b.allowedBits, rune(bit)) {
+			b.allowedBits = append(b.allowedBits, bit)
+		}
+	}
 	b.mandatoryBits = bits
 }
 
