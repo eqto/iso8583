@@ -2,7 +2,8 @@ package message
 
 //Signon ...
 type Signon struct {
-	Status string `bit:"39"`
+	TraceNumber int    `bit:"11"`
+	Status      string `bit:"39"`
 
 	/*
 		001: Signon
