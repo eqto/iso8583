@@ -139,6 +139,8 @@ func (m *Message) Clone() *Message {
 		deviceHeader: m.deviceHeader,
 		mti:          m.mti,
 		data:         messageData{},
+		bitmap:       make([]byte, len(m.bitmap)),
+		keys:         make([]int, len(m.keys)),
 	}
 	copy(msg.bitmap, m.bitmap)
 	copy(msg.keys, m.keys)
