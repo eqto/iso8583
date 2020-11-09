@@ -134,7 +134,7 @@ func (m *Message) Has(bit int) bool {
 }
 
 //Clone ...
-func (m *Message) Clone() Message {
+func (m *Message) Clone() *Message {
 	msg := Message{
 		deviceHeader: m.deviceHeader,
 		mti:          m.mti,
@@ -145,7 +145,7 @@ func (m *Message) Clone() Message {
 	for key, val := range m.data {
 		msg.data[key] = val
 	}
-	return msg
+	return &msg
 }
 
 //Bytes ...
