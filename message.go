@@ -224,23 +224,26 @@ func (m *Message) BitmapString() string {
 }
 
 //Unmarshal ...
-func (m *Message) Unmarshal(v interface{}) error {
-	typ := reflect.TypeOf(v)
-	val := reflect.ValueOf(v)
-	if typ.Kind() == reflect.Ptr {
-		typ = typ.Elem()
-		val = val.Elem()
+func (m *Message) Unmarshal(dest interface{}) error {
+	typeOf := reflect.TypeOf(dest)
+	if typeOf.Kind() != reflect.Ptr {
+		return errors.New(`dest is not a pointer`)
 	}
-	for i := 0; i < typ.NumField(); i++ {
-		field := typ.Field(i)
+	typeOf = typeOf.Elem()
+
+	valOf := reflect.ValueOf(dest)
+	valOf = valOf.Elem()
+	for i := 0; i < typeOf.NumField(); i++ {
+		field := typeOf.Field(i)
 		if bit := field.Tag.Get(`bit`); bit != `` {
 			if intBit, e := strconv.Atoi(bit); e == nil {
 				kind := field.Type.Kind()
+				val := valOf.Field(i)
 				switch kind {
 				case reflect.Int:
-					val.Field(i).SetInt(int64(m.GetInt(intBit)))
+					val.SetInt(int64(m.GetInt(intBit)))
 				case reflect.String:
-					val.Field(i).SetString(m.GetString(intBit))
+					val.SetString(m.GetString(intBit))
 				}
 			}
 		}
