@@ -5,6 +5,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"reflect"
 	"sort"
 	"strconv"
 	"strings"
@@ -220,6 +221,31 @@ func (m *Message) Bitmap() []byte {
 //BitmapString ...
 func (m *Message) BitmapString() string {
 	return strings.ToUpper(hex.EncodeToString(m.Bitmap()))
+}
+
+//Unmarshal ...
+func (m *Message) Unmarshal(v interface{}) error {
+	typ := reflect.TypeOf(v)
+	val := reflect.ValueOf(v)
+	if typ.Kind() == reflect.Ptr {
+		typ = typ.Elem()
+		val = val.Elem()
+	}
+	for i := 0; i < typ.NumField(); i++ {
+		field := typ.Field(i)
+		if bit := field.Tag.Get(`bit`); bit != `` {
+			if intBit, e := strconv.Atoi(bit); e == nil {
+				kind := field.Type.Kind()
+				switch kind {
+				case reflect.Int:
+					val.Field(i).SetInt(int64(m.GetInt(intBit)))
+				case reflect.String:
+					val.Field(i).SetString(m.GetString(intBit))
+				}
+			}
+		}
+	}
+	return nil
 }
 
 func (m *Message) setKey(key int) {
