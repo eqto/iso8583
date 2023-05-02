@@ -12,10 +12,10 @@ import (
 	"time"
 )
 
-//messageData ...
+// messageData ...
 type messageData map[int]interface{}
 
-//Message ...
+// Message ...
 type Message struct {
 	deviceHeader string
 	mti          string
@@ -24,28 +24,28 @@ type Message struct {
 	keys         []int
 }
 
-//SetDeviceHeader ...
+// SetDeviceHeader ...
 func (m *Message) SetDeviceHeader(deviceHeader string) {
 	m.deviceHeader = deviceHeader
 }
 
-//GetDeviceHeader ...
+// GetDeviceHeader ...
 func (m *Message) GetDeviceHeader() string {
 	return m.deviceHeader
 }
 
-//SetMTI ...
+// SetMTI ...
 func (m *Message) SetMTI(mti string) *Message {
 	m.mti = mti
 	return m
 }
 
-//GetMTI ...
+// GetMTI ...
 func (m *Message) GetMTI() string {
 	return m.mti
 }
 
-//Get ...
+// Get ...
 func (m *Message) Get(bit int) []byte {
 	if m.data == nil {
 		return nil
@@ -61,12 +61,12 @@ func (m *Message) Get(bit int) []byte {
 	return nil
 }
 
-//SetString ...
+// SetString ...
 func (m *Message) SetString(bit int, value string) *Message {
 	return m.setData(bit, value)
 }
 
-//GetString ...
+// GetString ...
 func (m *Message) GetString(bit int) string {
 	if m.data == nil {
 		return ``
@@ -88,17 +88,17 @@ func (m *Message) GetString(bit int) string {
 	return ``
 }
 
-//SetNumeric ...
+// SetNumeric ...
 func (m *Message) SetNumeric(bit int, value int) *Message {
 	return m.setData(bit, value)
 }
 
-//SetTime ...
+// SetTime ...
 func (m *Message) SetTime(bit int, value time.Time) *Message {
 	return m.setData(bit, value)
 }
 
-//GetInt ...
+// GetInt ...
 func (m *Message) GetInt(bit int) int {
 	if m.data == nil {
 		return 0
@@ -123,7 +123,7 @@ func (m *Message) GetInt(bit int) int {
 	return 0
 }
 
-//Has ...
+// Has ...
 func (m *Message) Has(bit int) bool {
 	if m.data != nil {
 		if _, ok := m.data[bit]; ok {
@@ -133,7 +133,7 @@ func (m *Message) Has(bit int) bool {
 	return false
 }
 
-//Clone ...
+// Clone ...
 func (m *Message) Clone() *Message {
 	msg := Message{
 		deviceHeader: m.deviceHeader,
@@ -150,7 +150,7 @@ func (m *Message) Clone() *Message {
 	return &msg
 }
 
-//Bytes ...
+// Bytes ...
 func (m *Message) Bytes() []byte {
 	if m.data == nil {
 		return nil
@@ -198,7 +198,7 @@ func (m *Message) String() string {
 	return string(m.Bytes())
 }
 
-//Dump ...
+// Dump ...
 func (m *Message) Dump() string {
 	buff := &strings.Builder{}
 	if header := m.GetDeviceHeader(); header != `` {
@@ -207,12 +207,12 @@ func (m *Message) Dump() string {
 	fmt.Fprintf(buff, "MTI: %s\n", m.GetMTI())
 	fmt.Fprintf(buff, "Bitmap: %s\n", m.BitmapString())
 	for _, key := range m.keys {
-		fmt.Fprintf(buff, "%3d: %s\n", key, m.GetString(key))
+		fmt.Fprintf(buff, "%3d: |%s|\n", key, m.GetString(key))
 	}
 	return buff.String()
 }
 
-//Bitmap ...
+// Bitmap ...
 func (m *Message) Bitmap() []byte {
 	if m.bitmap == nil {
 		m.bitmap = make([]byte, 8)
@@ -220,12 +220,12 @@ func (m *Message) Bitmap() []byte {
 	return m.bitmap
 }
 
-//BitmapString ...
+// BitmapString ...
 func (m *Message) BitmapString() string {
 	return strings.ToUpper(hex.EncodeToString(m.Bitmap()))
 }
 
-//Unmarshal ...
+// Unmarshal ...
 func (m *Message) Unmarshal(dest interface{}) error {
 	typeOf := reflect.TypeOf(dest)
 	if typeOf.Kind() != reflect.Ptr {
@@ -287,7 +287,7 @@ func (m *Message) setData(bit int, value interface{}) *Message {
 	return m
 }
 
-//Parse ...
+// Parse ...
 func Parse(data []byte) (msg *Message, err error) {
 	defer func() {
 		if r := recover(); r != nil {
