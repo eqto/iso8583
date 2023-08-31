@@ -311,6 +311,7 @@ func Parse(data []byte) (msg *Message, err error) {
 		secondBitmap, _ := hex.DecodeString(buff.ReadString(16))
 		bitmap = append(bitmap, secondBitmap...)
 	}
+	msg.bitmap = bitmap
 
 	var index int
 	for _, val := range bitmap {
@@ -326,15 +327,17 @@ func Parse(data []byte) (msg *Message, err error) {
 					length = fixLength
 				}
 				data := buff.Read(length)
-				if format, ok := timeBit[index]; ok {
-					parsed, e := time.Parse(format, string(data))
-					if e == nil {
-						msg.setData(index, parsed)
+				if data != nil {
+					if format, ok := timeBit[index]; ok {
+						parsed, e := time.Parse(format, string(data))
+						if e == nil {
+							msg.setData(index, parsed)
+						} else {
+							msg.setData(index, ``)
+						}
 					} else {
-						msg.setData(index, ``)
+						msg.setData(index, data)
 					}
-				} else {
-					msg.setData(index, data)
 				}
 			}
 		}
