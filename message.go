@@ -12,40 +12,34 @@ import (
 	"time"
 )
 
-// messageData ...
 type messageData map[int]interface{}
 
-// Message ...
 type Message struct {
 	deviceHeader string
 	mti          string
 	bitmap       []byte
 	data         messageData
 	keys         []int
+	bitLength    bitLength
 }
 
-// SetDeviceHeader ...
 func (m *Message) SetDeviceHeader(deviceHeader string) {
 	m.deviceHeader = deviceHeader
 }
 
-// GetDeviceHeader ...
 func (m *Message) GetDeviceHeader() string {
 	return m.deviceHeader
 }
 
-// SetMTI ...
 func (m *Message) SetMTI(mti string) *Message {
 	m.mti = mti
 	return m
 }
 
-// GetMTI ...
 func (m *Message) GetMTI() string {
 	return m.mti
 }
 
-// Get ...
 func (m *Message) Get(bit int) []byte {
 	if m.data == nil {
 		return nil
@@ -61,12 +55,10 @@ func (m *Message) Get(bit int) []byte {
 	return nil
 }
 
-// SetString ...
 func (m *Message) SetString(bit int, value string) *Message {
 	return m.setData(bit, value)
 }
 
-// GetString ...
 func (m *Message) GetString(bit int) string {
 	if m.data == nil {
 		return ``
@@ -88,17 +80,14 @@ func (m *Message) GetString(bit int) string {
 	return ``
 }
 
-// SetNumeric ...
 func (m *Message) SetNumeric(bit int, value int) *Message {
 	return m.setData(bit, value)
 }
 
-// SetTime ...
 func (m *Message) SetTime(bit int, value time.Time) *Message {
 	return m.setData(bit, value)
 }
 
-// GetInt ...
 func (m *Message) GetInt(bit int) int {
 	if m.data == nil {
 		return 0
@@ -123,7 +112,6 @@ func (m *Message) GetInt(bit int) int {
 	return 0
 }
 
-// Has ...
 func (m *Message) Has(bit int) bool {
 	if m.data != nil {
 		if _, ok := m.data[bit]; ok {
@@ -133,7 +121,6 @@ func (m *Message) Has(bit int) bool {
 	return false
 }
 
-// Clone ...
 func (m *Message) Clone() *Message {
 	msg := Message{
 		deviceHeader: m.deviceHeader,
@@ -150,7 +137,6 @@ func (m *Message) Clone() *Message {
 	return &msg
 }
 
-// Bytes ...
 func (m *Message) Bytes() []byte {
 	if m.data == nil {
 		return nil
@@ -168,7 +154,7 @@ func (m *Message) Bytes() []byte {
 			} else {
 				str = strings.Repeat(`0`, len(format))
 			}
-		} else if length, ok := bitLengthMap[key]; ok {
+		} else if length, ok := m.bitLength.Get(key); ok {
 			isAlphabetically := bytes.ContainsRune(alphabeticalBits, runeKey)
 			isSpecial := bytes.ContainsRune(specialBits, runeKey)
 			if isAlphabetically || isSpecial {
@@ -198,7 +184,6 @@ func (m *Message) String() string {
 	return string(m.Bytes())
 }
 
-// Dump ...
 func (m *Message) Dump() string {
 	buff := &strings.Builder{}
 	if header := m.GetDeviceHeader(); header != `` {
@@ -212,7 +197,6 @@ func (m *Message) Dump() string {
 	return buff.String()
 }
 
-// Bitmap ...
 func (m *Message) Bitmap() []byte {
 	if m.bitmap == nil {
 		m.bitmap = make([]byte, 8)
@@ -220,12 +204,10 @@ func (m *Message) Bitmap() []byte {
 	return m.bitmap
 }
 
-// BitmapString ...
 func (m *Message) BitmapString() string {
 	return strings.ToUpper(hex.EncodeToString(m.Bitmap()))
 }
 
-// Unmarshal ...
 func (m *Message) Unmarshal(dest interface{}) error {
 	typeOf := reflect.TypeOf(dest)
 	if typeOf.Kind() != reflect.Ptr {
@@ -287,61 +269,6 @@ func (m *Message) setData(bit int, value interface{}) *Message {
 	return m
 }
 
-// Parse ...
 func Parse(data []byte) (msg *Message, err error) {
-	defer func() {
-		if r := recover(); r != nil {
-			msg = nil
-			err = errors.New(`invalid format`)
-		}
-	}()
-	msg = &Message{}
-
-	if bytes.HasPrefix(data, []byte(`ISO`)) { //buang prefix
-		msg.SetDeviceHeader(string(data[:12]))
-		data = data[12:]
-	}
-
-	buff := newBuffer(data)
-
-	msg.SetMTI(buff.ReadString(4))
-
-	bitmap, _ := hex.DecodeString(buff.ReadString(16))
-	if bitmap[0]&(0x01<<7) > 0 {
-		secondBitmap, _ := hex.DecodeString(buff.ReadString(16))
-		bitmap = append(bitmap, secondBitmap...)
-	}
-	msg.bitmap = bitmap
-
-	var index int
-	for _, val := range bitmap {
-		for i := 7; i >= 0; i-- {
-			index++
-			if val&(0x01<<uint(i)) > 0 {
-				var length int
-				if bytes.ContainsRune(lllBits, rune(index)) {
-					length = buff.ReadInt(3)
-				} else if bytes.ContainsRune(llBits, rune(index)) {
-					length = buff.ReadInt(2)
-				} else if fixLength, ok := bitLengthMap[index]; ok {
-					length = fixLength
-				}
-				data := buff.Read(length)
-				if data != nil {
-					if format, ok := timeBit[index]; ok {
-						parsed, e := time.Parse(format, string(data))
-						if e == nil {
-							msg.setData(index, parsed)
-						} else {
-							msg.setData(index, ``)
-						}
-					} else {
-						msg.setData(index, data)
-					}
-				}
-			}
-		}
-	}
-
-	return msg, nil
+	return new(Parser).Parse(data)
 }
