@@ -36,6 +36,8 @@ func (b *Builder) New(mti string, data interface{}) (*Message, error) {
 				msg.SetNumeric(key, val)
 			case time.Time:
 				msg.SetTime(key, val)
+			case float64:
+				msg.SetNumeric(key, int(val))
 			}
 		}
 	} else {
