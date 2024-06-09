@@ -235,6 +235,10 @@ func (m *Message) Unmarshal(dest interface{}) error {
 	return nil
 }
 
+func (m *Message) AvailableBits() []int {
+	return m.keys
+}
+
 func (m *Message) setKey(key int) {
 	if len(m.keys) == 0 {
 		m.keys = []int{key}
