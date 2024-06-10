@@ -273,6 +273,10 @@ func (m *Message) setData(bit int, value interface{}) *Message {
 	return m
 }
 
+func (m *Message) SetBitLength(bit, length int) {
+	m.bitLength.Set(bit, length)
+}
+
 func Parse(data []byte) (msg *Message, err error) {
 	return new(Parser).Parse(data)
 }
